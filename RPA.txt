@@ -1,0 +1,55 @@
+Welcome to the UiPath Variables and  Data Types introductory training!
+In this tutorial you will get to know the basics of automation and working with UiPath. We start with an introduction to the UiPath Studio layout (Activities Panel, Workflow Designer and Properties Panel). We will then cover how to search for activities and add them to the workflow and how to create and use variables. Finally we will cover the basics of how Flowcharts and Sequences work.
+Requirements:
+
+Some knowledge of programming concepts (like variables and if statements) would be helpful for an easier understanding.
+Things you will learn:
+
+    UiPath interface layout
+    Adding activities
+    Working with variables
+    Working with Flowcharts or Sequences
+
+	
+Learn more about Variables and Data Types
+
+    Managing Variables
+    Types of Variables
+    Managing Arguments
+    About Imported Namespaces
+
+Introduction to Control Flow 
+Control-flow is the process of defining the rules and automatic decisions that the workflow will take. In this tutorial we will cover the If-Else activities in both the flowchart and sequence structures by creating a workflow that checks if a certain year is a leap year or not. You will also get to see how to include repetitive structures in both scenarios.
+Requirements:
+
+Previous module should be covered. Knowledge in regards to how the if statements and loops work is not mandatory but would be a plus
+Things you will learn:
+
+    How to use If Activity
+    How to use Decision Activity
+    How to use While, Do While and For Each Activities
+    How to construct a repetitive structure inside a flowchart
+
+	Lesson 2 - Variables, Data Types & Control Flows - Workflows.zip
+
+Time to Practice Workflows!
+ 
+Take a look at the workflow used as example in the previous video.
+
+ 
+
+Download the attachment and open the workflow with UiPath Studio, following the steps below:
+
+    Click on the Download button below and save the archive on your local machine
+    Extract the files
+    Open UiPath Studio
+    From the Start tab, click Open
+    Browse for the extracted files
+    Click on the xaml file
+    From the Design tab, hit Run.
+
+Remember, you can return to this lesson at any time to review the video.
+
+ 
+
+Note: Download the training materials in order to unlock the next session. 

@@ -1,0 +1,17 @@
+# Selenium Intro & Information
+	http://www.seleniumhq.org/
+	https://seleniumhq.github.io/selenium/docs/api/java/
+	http://www.seleniumhq.org/docs/
+	
+
+# Mandatory Coverage
+	- Keep a separate folder within the project to store all jars for better organizing.
+	- Always run automation on a separate browser version  
+	- Use Selenium 3 with latest stable version of Firefox
+	- Code Modularity should be taken care
+	- Create a separate function for every functionality
+	- Add comments wherever applicable and useful
+
+# Information
+	- HTMLUnit browser is the alternate option to run headless selenium tests in Linux (only Web Driver supported)
+	
