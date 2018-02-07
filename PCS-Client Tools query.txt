@@ -1,0 +1,563 @@
+/* Restrict + Normal Client List*/
+
+SELECT usr.`client`
+FROM users_restriction usr
+JOIN ust_usermaster ust ON usr.user=ust.ust_id
+JOIN ARTRAIL_PCS.clt_client clt ON clt.clt_client_id = usr.`client`
+WHERE clt.clt_corporate_id= 3449 AND usr.user= 10048 AND clt_is_corporate != 'Y' AND clt_isVisibilityAllowedinCtools = 'Y'
+GROUP BY usr.id;
+
+SELECT clt.clt_client_id AS CLIENT
+FROM ARTRAIL_PCS.clt_client clt
+WHERE clt.clt_corporate_id IN (3449) AND clt_is_corporate != 'Y' AND clt_isVisibilityAllowedinCtools = 'Y'
+
+/* CLient list */
+
+SELECT clt_client_id AS RECNUM, CONCAT(COALESCE(clt.clt_client_id,''),'-', COALESCE(cth.cth_name,'')) AS CLIENTNAME, CONCAT(COALESCE(clt.clt_client_id,''),' ', COALESCE(cth.cth_name,'')) AS NAME
+FROM clt_client clt
+JOIN cth_tree_hierarchy cth ON cth.cth_tree_id=clt.clt_facility_id
+WHERE clt.clt_corporate_id IN (3449) AND clt.clt_client_id IN (1,5,6,18,22,23,24,45,64,122,138,220,515,516,517,518,519,520,524,539,553,567,569)
+AND clt_isVisibilityAllowedinCtools = 'Y' AND clt_is_corporate != 'Y' 
+GROUP BY clt.clt_client_id;
+
+  * synonym missing
+
+/* Place a hold - unsubmitted holds */
+
+SELECT
+                    r.qreqId as ID,
+                    r.qreqCsrFirst as DEBTORFIRST,
+                    r.qreqCsrLast as DEBTORLAST,
+                    r.qreqSSN as SSN,
+                    DATE_FORMAT(r.qreqSubmissionDate, '%m/%d/%Y') as DATESUBMITTED,
+                    r.qreqCltRefNum as CLDNUM,
+                    r.qreqRefNum as PCSNUM,
+                    aco.aco_amount_referred as AMOUNT,                    
+                    r.qreqNote as REASON,
+                    DATE_FORMAT(r.qreqDOS, '%m/%d/%Y') as DOS,
+                    CONCAT(coalesce(ust.ust_user_first_name,''), ' ', coalesce(ust.ust_user_last_name,'')) as `USER`,
+                     (select h.reason from holdrequests_reasons h where h.id= r.qreqreasonid) as REASONFORHOLD,
+                     r.qreqCltNum as CLIENTID
+                  FROM
+                    qrequest as r LEFT JOIN ust_usermaster ust on ust.ust_id = r.qreqUserId 
+                    LEFT JOIN ARTRAIL_PCS.aco_accounts_opened aco ON aco.aco_account_id=r.qreqRefNum
+                    
+                  WHERE
+                    r.qreqCltNum =3449
+                    
+                    AND r.qactionId is null
+                    AND r.qreqCompany ='PCS'
+                    AND r.qtypeId = 1;
+					
+	* qreqRefNum index missing
+	* qreqCltNum index missing
+	* Remvoe in condition
+	* remove sub query in select
+
+/* View requested account holds */
+SELECT
+ aco.aco_invoice_id CLTACCT,
+ aco.aco_account_id ACCTNUM,
+ aco.aco_status_code STATUSCODE,
+ aco.aco_account_type_id TYPEACCOUNT, DATE(aco.aco_date_referred) DOR, DATE(aco.aco_start_date_of_service) DOS, DATE(aco.aco_date_of_last_pay) DLP,
+ aco.aco_amount_referred AMOUNTREFERRED,
+ aco.aco_principle_balance PRINCIPALBALANCE,
+ aco.aco_total_due TOTAL,
+ con.con_consumer_id MASTER,
+ con.con_last_name LASTNAME,
+ con.con_first_name FIRSTNAME,
+ coa.coa_address1 STADDRESS1,
+ coa.coa_address2 STADDRESS2,
+ cty.cty_city_name CITY, CONCAT(COALESCE(sta.sta_state_code, 0), '-', COALESCE(coa.coa_zipcode, 0)) STATEANDZIP,
+ sta.sta_state_name,
+ con.con_ssn SS,
+ cth.cth_name CLIENTNAME,
+ clt.clt_client_id CLTNUM,
+ ctd.ctd_id CTDID, CASE WHEN ctd.ctd_approved_flag='Y' AND ctd.ctd_cr_submit_flag='R' AND ctd.ctd_request_from='CLT' AND ctd.ctd_resolved_from='COLL' THEN 'Hold Account Resolved by Collector' WHEN ctd.ctd_approved_flag='C' AND ctd.ctd_cr_submit_flag='C' AND ctd.ctd_request_from='CLT' AND ctd.ctd_resolved_from='COLL' THEN 'Hold Account Rejectd by Collector' WHEN ctd.ctd_approved_flag='Y' AND ctd.ctd_cr_submit_flag='W' AND ctd.ctd_request_from='CLT' AND ctd.ctd_resolved_from='COLL' THEN 'Hold Account Approved by CS Team' WHEN ctd.ctd_approved_flag='Y' AND ctd.ctd_cr_submit_flag='N' AND ctd.ctd_request_from='CLT' AND (ctd.ctd_resolved_from IS NULL OR ctd.ctd_resolved_from='CLT') THEN 'Pending' END STATUS,
+ ctd.ctd_history_note AS REASON
+FROM aco_accounts_opened aco
+LEFT JOIN ast_account_status ast ON aco.aco_status_code = ast.ast_status_code
+LEFT JOIN con_consumer con ON con.con_consumer_id = aco.aco_consumer_id
+LEFT JOIN clt_client clt ON clt.clt_client_id = aco.aco_cld_client_id
+LEFT JOIN cth_tree_hierarchy cth ON clt.clt_facility_id = cth.cth_tree_id
+LEFT JOIN coa_consumer_address coa ON con.con_consumer_id = coa.coa_con_consumer_id
+LEFT JOIN sta_state sta ON coa.coa_sta_state_id = sta.sta_state_id
+LEFT JOIN cty_city cty ON coa.coa_cty_city_id = cty.cty_city_id
+LEFT JOIN ctd_request_toclient_detail ctd ON ctd.ctd_aco_account_id = aco.aco_account_id
+WHERE (((ctd.ctd_resolved_from='CLT' OR ctd.ctd_resolved_from IS NULL) AND ctd.ctd_request_from='CLT' AND ctd.ctd_approved_flag='Y' 
+AND ctd.ctd_cr_submit_flag='N') OR 
+ (ctd.ctd_approved_flag='Y' AND ctd.ctd_cr_submit_flag='R' AND ctd.ctd_request_from='CLT' AND ctd.ctd_resolved_from='COLL') OR 
+ (ctd.ctd_approved_flag='Y' AND ctd.ctd_cr_submit_flag='W' AND ctd.ctd_request_from='CLT' AND ctd.ctd_resolved_from='COLL') OR
+ (ctd.ctd_approved_flag='C' AND ctd.ctd_cr_submit_flag='C' AND ctd.ctd_request_from='CLT' AND ctd.ctd_resolved_from='COLL')) AND 
+ clt.clt_client_id IN (1, 5, 6, 18, 22, 23, 24, 45, 64, 122, 138, 220, 515, 516, 517, 518, 519, 520, 524, 539, 553, 567, 569) 
+ AND ctd.ctd_request_description LIKE 'HOLD-%' AND aco.aco_status_code NOT IN ('INACT','EXCEP')
+GROUP BY ctd.ctd_id 
+
+  * synonym missing
+
+/* Past payment */
+
+ (
+SELECT 
+ cth.cth_tree_id AS CLIENTDBNUM,
+ con.con_last_name AS DEBTORLAST, 
+ con.con_first_name AS DEBTORFIRST, 
+ pat.pat_aco_account_id PCSACCOUNTNUM,
+ aco.aco_invoice_id CLIENTACCTNUM, DATE_FORMAT(pay.pay_payment_date, '%m/%d/%Y') AS DATESUBMITTED, 
+ pay.pay_amount AS PAYMENT1,
+ '' AS ADJUSTMENT1, CASE WHEN
+ pat.pat_transaction_verified_status='C' AND (pat.pat_ct_verified_status='P') THEN 'Client Request Pending' WHEN pay.pay_payment_status='N' AND (pat.pat_transaction_verified_status='N' OR pat.pat_transaction_verified_status='C') AND (pat.pat_ct_verified_status='N' OR pat.pat_ct_verified_status='C' OR pat.pat_ct_verified_status IS NULL) THEN 'Payment Pending' WHEN pay.pay_payment_status='R' AND pat.pat_transaction_verified_status='N' THEN 'Payment Rejected' WHEN pat.pat_ct_verified_status='X' AND pat.pat_transaction_verified_status='X' THEN 'Payment Rejected' WHEN pay.pay_payment_status='R' AND pat.pat_transaction_verified_status='Y' THEN 'Payment Reversed' WHEN pay.pay_payment_status='N' AND pat.pat_transaction_verified_status='Y' THEN 'Payment Approved' END CATEGORY,
+ 'payment' AS types
+FROM ARTRAIL_PCS.pat_payment_transaction pat
+JOIN ARTRAIL_PCS.pay_payments pay ON pat.pat_pay_payment_id=pay.pay_payment_id
+JOIN ARTRAIL_PCS.aco_accounts_opened aco ON aco.aco_account_id= pat.pat_aco_account_id
+JOIN ARTRAIL_PCS.con_consumer con ON con.con_consumer_id = pat.pat_con_consumer_id
+JOIN ARTRAIL_PCS.clt_client clt ON clt.clt_client_id = aco.aco_cld_client_id
+JOIN ARTRAIL_PCS.cth_tree_hierarchy cth ON cth.cth_tree_id = clt.clt_corporate_id
+JOIN ARTRAIL_PCS.glp_general_lookup glp ON glp.glp_lookup_key = pay.pay_pmt_type_id
+WHERE glp.glp_lookup_value='DP' AND pay.pay_pmt_type_id=254 AND pat.pat_clt_client_id IN (1,5,6,18,22,23,24,45,64,122,138,220,515,516,517,518,519,520,524,539,553,567,569,3449) AND (DATE(pay_payment_date) >= '2017-01-01' AND DATE(pay_payment_date) <= '2017-12-03')
+) UNION ALL
+ (
+SELECT 
+ cth.cth_tree_id AS CLIENTDBNUM,
+ con.con_last_name AS DEBTORLAST, 
+ con.con_first_name AS DEBTORFIRST, 
+ psd.psd_account_id PCSACCOUNTNUM,
+ aco.aco_invoice_id CLIENTACCTNUM, DATE_FORMAT(psd.psd_pay_date, '%m/%d/%Y') AS DATESUBMITTED,
+ '' AS PAYMENT1,
+ psd.psd_payment_adjustments ADJUSTMENT1, CASE WHEN psd.psd_approved_status='A' THEN 'Adjustment Approved' WHEN psd.psd_approved_status='P' THEN 'Adjustment Pending' WHEN psd.psd_approved_status='R' THEN 'Adjustment Rejected' WHEN psd.psd_approved_status='C' THEN 'Client Request Pending' END CATEGORY,
+ 'adjustment' AS types
+FROM ARTRAIL_PCS.psd_payment_staging_details psd
+LEFT JOIN ARTRAIL_PCS.aco_accounts_opened aco ON aco.aco_account_id= psd.psd_account_id
+LEFT JOIN ARTRAIL_PCS.con_consumer con ON con.con_consumer_id = psd.psd_consumer_id
+LEFT JOIN ARTRAIL_PCS.clt_client clt ON clt.clt_client_id = aco.aco_cld_client_id
+JOIN ARTRAIL_PCS.cth_tree_hierarchy cth ON cth.cth_tree_id = clt.clt_corporate_id
+JOIN ARTRAIL_PCS.glp_general_lookup glp ON glp.glp_lookup_value = psd.psd_payment_type
+WHERE glp.glp_lookup_value='ADJ' AND clt.clt_client_id IN (1,5,6,18,22,23,24,45,64,122,138,220,515,516,517,518,519,520,524,539,553,567,569,3449) AND psd.psd_payment_adjustments IS NOT NULL AND (DATE(psd_pay_date) >= '2017-01-01') 
+)
+
+/* Unsubmitted cancellations */
+
+SELECT
+ r.qreqCltNum AS CLIENTID,
+			r.qreqId AS ID,
+			r.qreqCsrFirst AS DEBTORFIRST,
+			r.qreqCsrLast AS DEBTORLAST,
+			r.qreqSSN AS SSN, DATE_FORMAT(r.qreqSubmissionDate, '%m/%d/%Y') AS DATE,
+ 		r.qreqCltRefNum AS CLDNUM,
+			r.qreqRefNum AS PCSNUM,
+			aco.aco_amount_referred AS AMOUNT, 
+			r.qreqNote AS REASON, DATE_FORMAT(r.qreqDOS, '%m/%d/%Y') AS DOS, CONCAT(COALESCE(ust.ust_user_first_name,''),' ', COALESCE(ust.ust_user_last_name,'')) AS USER,
+ (
+SELECT h.reason_value
+FROM holdrequests_reasons h
+WHERE h.id= r.qreqreasonid) AS CANCELREASON
+FROM
+			qrequest AS r
+LEFT JOIN ust_usermaster ust ON r.qreqUserId = ust.ust_id
+LEFT JOIN ARTRAIL_PCS.aco_accounts_opened aco ON aco.aco_account_id=r.qreqRefNum
+WHERE
+			r.qreqCltNum IN (3449) AND r.qactionId IS NULL AND r.qreqCompany ='PCS' AND r.qtypeId = 2
+			
+			
+/* View pending cancellations */
+
+SELECT CONCAT(con.con_first_name,',',con.con_last_name) AS Name, 
+ ctd.ctd_aco_account_id AS PCSNUM, 
+ clt.clt_client_id AS CLIENTID, 
+ aco.aco_invoice_id CLDNUM, DATE_FORMAT(qr.qreqSubmissionDate, '%m/%d/%Y') AS DATESUBMITTED, 
+ aco.aco_amount_referred AS AMOUNT, 
+ con.con_ssn AS SSN, 
+ ctd.ctd_history_note AS REASON, IF(qr.qreqDOS IS NULL,'', DATE_FORMAT(qr.qreqDOS, '%m/%d/%Y')) AS 'DOS', 
+ a.qactionName AS STATUS, 
+ a.qactionDesc AS actiondesc
+FROM ctd_request_toclient_detail ctd
+JOIN aco_accounts_opened aco ON aco.aco_account_id = ctd.ctd_aco_account_id
+JOIN clt_client clt ON clt.clt_client_id = ctd.ctd_clt_client_id
+JOIN cth_tree_hierarchy cth ON cth.cth_tree_id = clt.clt_corporate_id
+JOIN con_consumer con ON con.con_consumer_id= ctd.ctd_con_consumer_id
+LEFT JOIN ARM_HRO_CLIENTTOOLS.qrequest qr ON qr.qreqCltNum = cth.cth_tree_id
+LEFT JOIN ARM_HRO_CLIENTTOOLS.qactions a ON a.qactionId = qr.qactionId
+WHERE clt.clt_client_id IN (1,5,6,18,22,23,24,45,64,122,138,220,515,516,517,518,519,520,524,539,553,567,569) AND ctd.ctd_approved_flag='Y' AND 
+ ctd.ctd_request_description LIKE 'CANCEL%' AND
+ ctd.ctd_cr_submit_flag='N' AND 
+ ctd.ctd_cr_submit_flag!='R'
+GROUP BY ctd.ctd_id
+
+/* past cancellation */
+
+(
+SELECT 
+ 3449 AS CLIENTID, CONCAT(con.con_last_name,' ',con.con_first_name) AS Name,
+ ctd.ctd_aco_account_id AS AccountID,
+ con.con_ssn SSN,
+ ctd.ctd_requested_date DateStart,
+ aco.aco_invoice_id AS ClientDebtorNum,
+ aco.aco_amount_referred AS Amount,
+ ctd.ctd_request_description Reason, CASE WHEN (ctd.ctd_approved_flag='Y' AND ctd.ctd_cr_submit_flag='R') THEN 'Approved' WHEN (ctd.ctd_approved_flag='C' AND ctd.ctd_cr_submit_flag='C') THEN 'Rejected' END AS CATEGORY,
+ aco.aco_start_date_of_service DOS
+FROM con_consumer con
+LEFT JOIN ctd_request_toclient_detail ctd ON con.con_consumer_id=ctd.ctd_con_consumer_id
+LEFT JOIN aco_accounts_opened aco ON aco.aco_cld_client_id=ctd.ctd_clt_client_id AND aco.aco_consumer_id=ctd.ctd_con_consumer_id AND aco.aco_account_id=ctd.ctd_aco_account_id
+WHERE ctd.ctd_request_description LIKE 'CAN%' AND (ctd.ctd_approved_flag='Y' OR ctd.ctd_approved_flag='C') AND ctd.ctd_cr_submit_flag !='N' AND ctd.ctd_clt_client_id IN (1,5,6,18,22,23,24,45,64,122,138,220,515,516,517,518,519,520,524,539,553,567,569) AND (ctd.ctd_requested_date >= '2017-01-01 00:00:00' AND ctd.ctd_requested_date <= '2017-12-03 23:59:59')
+ORDER BY ctd.ctd_id DESC)
+
+/* Inventory */
+
+SELECT *
+FROM(
+SELECT
+ con.con_last_name AS "Last Name", con.con_first_name AS "First Name"
+FROM ARTRAIL_PCS.aco_accounts_opened aco
+LEFT JOIN ARTRAIL_PCS.con_consumer con ON aco.aco_consumer_id = con.con_consumer_id
+LEFT JOIN ARTRAIL_PCS.clt_client clt ON aco.aco_cld_client_id = clt.clt_client_id
+LEFT JOIN ARTRAIL_PCS.cth_tree_hierarchy cth ON cth.cth_tree_id = clt.clt_facility_id
+LEFT JOIN ARTRAIL_PCS.cph_consumer_phone_fax cph ON cph.cph_con_consumer_id = con.con_consumer_id AND cph.cph_type = 'C' AND cph.cph_consumer_phone_fax_id = IF((
+SELECT MAX(ph.cph_consumer_phone_fax_id)
+FROM ARTRAIL_PCS.cph_consumer_phone_fax ph
+WHERE ph.cph_con_consumer_id = cph.cph_con_consumer_id AND ph.cph_primary_flag ='Y') >= 1, (
+SELECT MAX(ph.cph_consumer_phone_fax_id)
+FROM ARTRAIL_PCS.cph_consumer_phone_fax ph
+WHERE ph.cph_con_consumer_id = cph.cph_con_consumer_id AND ph.cph_primary_flag ='Y'), (
+SELECT MAX(ph.cph_consumer_phone_fax_id)
+FROM ARTRAIL_PCS.cph_consumer_phone_fax ph
+WHERE ph.cph_con_consumer_id = cph.cph_con_consumer_id))
+LEFT JOIN ARTRAIL_PCS.coa_consumer_address coa ON coa.coa_con_consumer_id = con.con_consumer_id AND coa.coa_type ='C' AND coa.coa_consumer_address_id = IF((
+SELECT MAX(ad.coa_consumer_address_id)
+FROM ARTRAIL_PCS.coa_consumer_address ad
+WHERE ad.coa_con_consumer_id = con.con_consumer_id AND ad.coa_primary_flag = 'Y')>=1, (
+SELECT MAX(ad.coa_consumer_address_id)
+FROM ARTRAIL_PCS.coa_consumer_address ad
+WHERE ad.coa_con_consumer_id = con.con_consumer_id AND ad.coa_primary_flag = 'Y'), (
+SELECT MAX(ad.coa_consumer_address_id)
+FROM ARTRAIL_PCS.coa_consumer_address ad
+WHERE ad.coa_con_consumer_id = con.con_consumer_id AND ad.coa_primary_flag = 'N'))
+LEFT JOIN ARTRAIL_PCS.cty_city city ON city.cty_city_id = coa.coa_cty_city_id
+LEFT JOIN ARTRAIL_PCS.sta_state stat ON stat.sta_state_id = coa.coa_sta_state_id
+LEFT JOIN ARTRAIL_PCS.cbk_consumer_bankruptcy cbk ON cbk.cbk_consumer_id=aco.aco_consumer_id
+LEFT JOIN ARTRAIL_PCS.acp_account_custom_properties acp ON acp.aca_account_id=aco.aco_account_id AND acp.aca_property_name='facility'
+WHERE
+ clt.clt_client_id IN ('1','5','6','18','22','23','24','45','64','122','138','220','515','516','517','518','519','520','524','539','553','567','569') AND aco.aco_status_code NOT IN ('INACT','EXCEP') UNION ALL
+SELECT
+ con.con_last_name AS "Last Name", con.con_first_name AS "First Name"
+FROM ARTRAIL_PCS.acc_accounts_closed acc
+LEFT JOIN ARTRAIL_PCS.con_consumer con ON acc.acc_consumer_id = con.con_consumer_id
+LEFT JOIN ARTRAIL_PCS.clt_client clt ON acc.acc_cld_client_id = clt.clt_client_id
+LEFT JOIN ARTRAIL_PCS.cth_tree_hierarchy cth ON cth.cth_tree_id = clt.clt_facility_id
+LEFT JOIN ARTRAIL_PCS.cph_consumer_phone_fax cph ON cph.cph_con_consumer_id = con.con_consumer_id AND cph.cph_type = 'C' AND cph.cph_consumer_phone_fax_id = IF((
+SELECT MAX(ph.cph_consumer_phone_fax_id)
+FROM ARTRAIL_PCS.cph_consumer_phone_fax ph
+WHERE ph.cph_con_consumer_id = cph.cph_con_consumer_id AND ph.cph_primary_flag ='Y') >= 1, (
+SELECT MAX(ph.cph_consumer_phone_fax_id)
+FROM ARTRAIL_PCS.cph_consumer_phone_fax ph
+WHERE ph.cph_con_consumer_id = cph.cph_con_consumer_id AND ph.cph_primary_flag ='Y'), (
+SELECT MAX(ph.cph_consumer_phone_fax_id)
+FROM ARTRAIL_PCS.cph_consumer_phone_fax ph
+WHERE ph.cph_con_consumer_id = cph.cph_con_consumer_id))
+LEFT JOIN ARTRAIL_PCS.coa_consumer_address coa ON coa.coa_con_consumer_id = con.con_consumer_id AND coa.coa_type ='C' AND coa.coa_consumer_address_id = IF((
+SELECT MAX(ad.coa_consumer_address_id)
+FROM ARTRAIL_PCS.coa_consumer_address ad
+WHERE ad.coa_con_consumer_id = con.con_consumer_id AND ad.coa_primary_flag = 'Y')>=1, (
+SELECT MAX(ad.coa_consumer_address_id)
+FROM ARTRAIL_PCS.coa_consumer_address ad
+WHERE ad.coa_con_consumer_id = con.con_consumer_id AND ad.coa_primary_flag = 'Y'), (
+SELECT MAX(ad.coa_consumer_address_id)
+FROM ARTRAIL_PCS.coa_consumer_address ad
+WHERE ad.coa_con_consumer_id = con.con_consumer_id AND ad.coa_primary_flag = 'N'))
+LEFT JOIN ARTRAIL_PCS.cty_city city ON city.cty_city_id = coa.coa_cty_city_id
+LEFT JOIN ARTRAIL_PCS.sta_state stat ON stat.sta_state_id = coa.coa_sta_state_id
+LEFT JOIN ARTRAIL_PCS.cbk_consumer_bankruptcy cbk ON cbk.cbk_consumer_id=acc.acc_consumer_id
+LEFT JOIN ARTRAIL_PCS.acp_account_custom_properties acp ON acp.aca_account_id=acc.acc_account_id AND acp.aca_property_name='facility'
+WHERE
+ clt.clt_client_id IN ('1','5','6','18','22','23','24','45','64','122','138','220','515','516','517','518','519','520','524','539','553','567','569') AND acc.acc_status_code NOT IN ('INACT','EXCEP')) a
+ORDER BY "Last Name", "First Name" ASC
+
+/* inbox folder id = 0, sent = -2,  */
+
+SELECT SQL_CALC_FOUND_ROWS 
+ c.cth_name AS clientname,
+ c.cth_tree_id AS corporateid,
+ m.id AS thread,
+ m.subject AS subject, CONCAT(a.ust_user_first_name,' ',a.ust_user_last_name) AS author, DATE_FORMAT(m.created,'%m/%d/%y') AS DATE, DATE_FORMAT(m.threadlastupdate,'%m/%d/%y %H:%i:%s') AS 'update',
+ s.dirty AS dirty,
+ m.user AS authorid,
+ m.threadhasattachment, GROUP_CONCAT(DISTINCT CONCAT(u.ust_user_first_name,' ',u.ust_user_last_name) SEPARATOR ', ') AS recipients,
+ s.mail_reply_fwd_status
+FROM
+ mb_shareholder AS s
+LEFT JOIN mb_messages AS m ON s.message = m.id
+LEFT JOIN mb_recipients AS r ON m.id = r.message
+LEFT JOIN ust_usermaster AS u ON u.ust_id = r.user
+LEFT JOIN ARTRAIL_PCS.cth_tree_hierarchy AS c ON c.cth_tree_id = m.client
+LEFT JOIN ust_usermaster AS a ON a.ust_id = m.user
+WHERE
+ s.user = 10024 AND m.is_deleted = 'N' AND s.folder_id = 0
+GROUP BY
+ s.message
+ORDER BY 
+ m.created DESC,
+ m.threadlastupdate DESC
+LIMIT 0,50
+
+/* Internal recipient list */
+
+SELECT ust.ust_id AS USERDBNUM, 
+ cmap.clt_art_access_code AS CLIENTDBNUM, 
+ ust.ust_user_last_name, 
+ ust.ust_user_first_name, 
+ ust.ust_user_loginid AS EMAIL, 
+ ust.ust_user_dispname AS NAME, 
+ ust.ust_title AS title,
+ ust.ust_is_away, CASE WHEN ust.ust_is_away='Y' THEN 'Away Users' WHEN ust.ust_is_away='N' THEN 'Available Users' END AS STATUS,
+ '' AS USERDEPT, 
+ '' AS CONTACT_LEVEL, CONCAT(COALESCE(ust.ust_user_first_name,''),' ', COALESCE(ust.ust_user_last_name,''),(CASE WHEN ust.ust_title != '' THEN CONCAT(' - ',ust.ust_title) ELSE '' END)) AS TITLENAME
+FROM ust_usermaster ust
+JOIN clt_user_map cmap ON cmap.clt_user_id = ust.ust_id
+LEFT JOIN ARTRAIL_PCS.cth_tree_hierarchy cs ON cmap.clt_art_access_code = cs.cth_tree_id
+WHERE ust.ust_user_active='Y' AND ust.ust_user_mail='Y' AND cmap.clt_art_access_flag ='Y' AND cs.cth_tree_id IN (3449) AND ust.ust_user_loginid!=''
+ORDER BY ust.ust_is_away DESC
+
+/* External recipient list */
+
+SELECT ust.ust_id AS USERDBNUM, 
+ cmap.clt_art_access_code AS CLIENTDBNUM, 
+ ust.ust_user_last_name, 
+ ust.ust_user_first_name, 
+ ust.ust_user_loginid AS EMAIL, 
+ ust.ust_user_dispname AS NAME, 
+ ust.ust_title AS title,
+ ust.ust_is_away, CASE WHEN ust.ust_is_away='Y' THEN 'Away Users' WHEN ust.ust_is_away='N' THEN 'Available Users' END AS STATUS,
+ '' AS USERDEPT, 
+ '' AS CONTACT_LEVEL, CONCAT(COALESCE(ust.ust_user_first_name,''),' ', COALESCE(ust.ust_user_last_name,''),(CASE WHEN ust.ust_title != '' THEN CONCAT(' - ',ust.ust_title) ELSE '' END)) AS TITLENAME
+FROM ust_usermaster ust
+JOIN clt_user_map cmap ON cmap.clt_user_id = ust.ust_id
+LEFT JOIN ARTRAIL_PCS.cth_tree_hierarchy cs ON cmap.clt_art_access_code = cs.cth_tree_id
+WHERE ust.ust_user_active='Y' AND cmap.clt_art_access_flag ='Y' AND cs.cth_tree_id IN (3449) AND ust.ust_user_loginid!='' AND ust.ust_user_mail !='Y'
+ORDER BY ust.ust_is_away DESC;
+
+/* Inquiry Search */
+SELECT *
+FROM ((
+SELECT aco.aco_account_id AS ACCOUNT, ct.cth_name AS CORPORATENAME, ct.cth_tree_id AS CORPORATEID, clt.clt_client_id AS CLIENTID, con.con_consumer_id AS RECNUM, con.con_first_name AS FIRSTNAME, con.con_last_name AS LASTNAME, coa.coa_address1 AS STADDRESS1, cty.cty_city_name AS CITY, coa.coa_sta_state_id, sta.sta_state_id, cty.cty_sta_state_id, sta.sta_state_code, coa.coa_zipcode AS STATEANDZIP, con.con_ssn AS SOCIALSEC, 'PRIMARY' AS TYPE
+FROM aco_accounts_opened aco
+JOIN clt_client clt ON aco.aco_cld_client_id = clt.clt_client_id
+JOIN cth_tree_hierarchy ct ON clt.clt_corporate_id = ct.cth_tree_id
+JOIN con_consumer con ON aco.aco_consumer_id = con.con_consumer_id
+LEFT JOIN coa_consumer_address coa ON coa.coa_con_consumer_id = con.con_consumer_id AND coa.coa_type ='C' AND coa.coa_consumer_address_id = IF((
+SELECT MAX(ad.coa_consumer_address_id)
+FROM coa_consumer_address ad
+WHERE ad.coa_con_consumer_id = con.con_consumer_id AND ad.coa_primary_flag = 'Y')>=1, (
+SELECT MAX(ad.coa_consumer_address_id)
+FROM coa_consumer_address ad
+WHERE ad.coa_con_consumer_id = con.con_consumer_id AND ad.coa_primary_flag = 'Y'), (
+SELECT MAX(ad.coa_consumer_address_id)
+FROM coa_consumer_address ad
+WHERE ad.coa_con_consumer_id = con.con_consumer_id AND ad.coa_primary_flag = 'N'))
+LEFT JOIN cty_city cty ON cty.cty_city_id = coa.coa_cty_city_id
+LEFT JOIN sta_state sta ON sta.sta_state_id = cty.cty_sta_state_id
+WHERE ((con_last_name LIKE 'test%' AND CONCAT(COALESCE(con_last_name,''),' ', COALESCE(con_first_name,'')) LIKE 'test%') OR con_ssn LIKE '123%') AND aco.aco_status_code NOT IN ('INACT','EXCEP') AND clt_isVisibilityAllowedinCtools = 'Y'
+GROUP BY RECNUM,CORPORATENAME) UNION (
+SELECT acc.acc_account_id AS ACCOUNT, ct.cth_name AS CORPORATENAME, ct.cth_tree_id AS CORPORATEID, clt.clt_client_id AS CLIENTID, con.con_consumer_id AS RECNUM, con.con_first_name AS FIRSTNAME, con.con_last_name AS LASTNAME, coa.coa_address1 AS STADDRESS1, cty.cty_city_name AS CITY, coa.coa_sta_state_id, sta.sta_state_id, cty.cty_sta_state_id, sta.sta_state_code, coa.coa_zipcode AS STATEANDZIP, con.con_ssn AS SOCIALSEC, 'PRIMARY' AS TYPE
+FROM acc_accounts_closed acc
+JOIN clt_client clt ON acc.acc_cld_client_id = clt.clt_client_id
+JOIN cth_tree_hierarchy ct ON clt.clt_corporate_id = ct.cth_tree_id
+JOIN con_consumer con ON acc.acc_consumer_id = con.con_consumer_id
+LEFT JOIN coa_consumer_address coa ON coa.coa_con_consumer_id = con.con_consumer_id AND coa.coa_type ='C' AND coa.coa_consumer_address_id = IF((
+SELECT MAX(ad.coa_consumer_address_id)
+FROM coa_consumer_address ad
+WHERE ad.coa_con_consumer_id = con.con_consumer_id AND ad.coa_primary_flag = 'Y')>=1, (
+SELECT MAX(ad.coa_consumer_address_id)
+FROM coa_consumer_address ad
+WHERE ad.coa_con_consumer_id = con.con_consumer_id AND ad.coa_primary_flag = 'Y'), (
+SELECT MAX(ad.coa_consumer_address_id)
+FROM coa_consumer_address ad
+WHERE ad.coa_con_consumer_id = con.con_consumer_id AND ad.coa_primary_flag = 'N'))
+LEFT JOIN cty_city cty ON cty.cty_city_id = coa.coa_cty_city_id
+LEFT JOIN sta_state sta ON sta.sta_state_id = cty.cty_sta_state_id
+WHERE ((con_last_name LIKE 'test%' AND CONCAT(COALESCE(con_last_name,''),' ', COALESCE(con_first_name,'')) LIKE 'test%') OR con_ssn LIKE '123%') AND acc.acc_status_code NOT IN ('INACT','EXCEP') AND clt_isVisibilityAllowedinCtools = 'Y'
+GROUP BY RECNUM,CORPORATENAME) UNION(
+SELECT aco.aco_account_id AS ACCOUNT, ct.cth_name AS CORPORATENAME, ct.cth_tree_id AS CORPORATEID, clt.clt_client_id AS CLIENTID, con.con_consumer_id AS RECNUM, con.con_first_name AS FIRSTNAME, con.con_last_name AS LASTNAME, coa.coa_address1 AS STADDRESS1, cty.cty_city_name AS CITY, coa.coa_sta_state_id, sta.sta_state_id, cty.cty_sta_state_id, sta.sta_state_code, coa.coa_zipcode AS STATEANDZIP, con.con_ssn AS SOCIALSEC, 'PRIMARY' AS TYPE
+FROM aco_accounts_opened aco
+JOIN clt_client clt ON aco.aco_cld_client_id = clt.clt_client_id
+JOIN cth_tree_hierarchy ct ON clt.clt_corporate_id = ct.cth_tree_id
+JOIN ast_account_status ast ON aco.aco_status_code = ast.ast_status_code
+JOIN con_consumer con ON aco.aco_consumer_id = con.con_consumer_id
+LEFT JOIN coa_consumer_address coa ON coa.coa_con_consumer_id = con.con_consumer_id AND coa.coa_type ='C' AND coa.coa_consumer_address_id = IF((
+SELECT MAX(ad.coa_consumer_address_id)
+FROM coa_consumer_address ad
+WHERE ad.coa_con_consumer_id = con.con_consumer_id AND ad.coa_primary_flag = 'Y')>=1, (
+SELECT MAX(ad.coa_consumer_address_id)
+FROM coa_consumer_address ad
+WHERE ad.coa_con_consumer_id = con.con_consumer_id AND ad.coa_primary_flag = 'Y'), (
+SELECT MAX(ad.coa_consumer_address_id)
+FROM coa_consumer_address ad
+WHERE ad.coa_con_consumer_id = con.con_consumer_id AND ad.coa_primary_flag = 'N'))
+LEFT JOIN cty_city cty ON cty.cty_city_id = coa.coa_cty_city_id
+LEFT JOIN sta_state sta ON sta.sta_state_id = cty.cty_sta_state_id
+WHERE ((aco.aco_account_id LIKE '12%' OR aco.aco_invoice_id LIKE '12%') OR (aco.aco_consumer_id LIKE '12%' OR aco.aco_consumer_debtor_id LIKE '12%')) AND aco.aco_status_code NOT IN ('INACT','EXCEP') AND clt_isVisibilityAllowedinCtools = 'Y'
+GROUP BY RECNUM,CORPORATENAME) UNION (
+SELECT acc.acc_account_id AS ACCOUNT, ct.cth_name AS CORPORATENAME, ct.cth_tree_id AS CORPORATEID, clt.clt_client_id AS CLIENTID, con.con_consumer_id AS RECNUM, con.con_first_name AS FIRSTNAME, con.con_last_name AS LASTNAME, coa.coa_address1 AS STADDRESS1, cty.cty_city_name AS CITY, coa.coa_sta_state_id, sta.sta_state_id, cty.cty_sta_state_id, sta.sta_state_code, coa.coa_zipcode AS STATEANDZIP, con.con_ssn AS SOCIALSEC, 'PRIMARY' AS TYPE
+FROM acc_accounts_closed acc
+JOIN clt_client clt ON acc.acc_cld_client_id = clt.clt_client_id
+JOIN cth_tree_hierarchy ct ON clt.clt_corporate_id = ct.cth_tree_id
+JOIN con_consumer con ON acc.acc_consumer_id = con.con_consumer_id
+LEFT JOIN coa_consumer_address coa ON coa.coa_con_consumer_id = con.con_consumer_id AND coa.coa_type ='C' AND coa.coa_consumer_address_id = IF((
+SELECT MAX(ad.coa_consumer_address_id)
+FROM coa_consumer_address ad
+WHERE ad.coa_con_consumer_id = con.con_consumer_id AND ad.coa_primary_flag = 'Y')>=1, (
+SELECT MAX(ad.coa_consumer_address_id)
+FROM coa_consumer_address ad
+WHERE ad.coa_con_consumer_id = con.con_consumer_id AND ad.coa_primary_flag = 'Y'), (
+SELECT MAX(ad.coa_consumer_address_id)
+FROM coa_consumer_address ad
+WHERE ad.coa_con_consumer_id = con.con_consumer_id AND ad.coa_primary_flag = 'N'))
+LEFT JOIN cty_city cty ON cty.cty_city_id = coa.coa_cty_city_id
+LEFT JOIN sta_state sta ON sta.sta_state_id = cty.cty_sta_state_id
+WHERE ((acc.acc_account_id LIKE '12%' OR acc.acc_invoice_id LIKE '12%') OR (acc.acc_consumer_id LIKE '12%' OR acc.acc_consumer_debtor_id LIKE '12%')) AND acc.acc_status_code NOT IN ('INACT','EXCEP') AND clt_isVisibilityAllowedinCtools = 'Y'
+GROUP BY RECNUM,CORPORATENAME)) aa
+GROUP BY aa.RECNUM 
+
+/* Dashboard Query */ 
+
+SELECT COUNT(DISTINCT s.message) AS 'Count','email/index/' AS url,'Messages' AS 'Title','New Message(s)' AS 'subTitle','7' AS 'detailId'
+FROM mb_shareholder AS s
+LEFT JOIN mb_messages AS m ON s.message = m.id
+LEFT JOIN mb_recipients AS r ON m.id = r.message
+LEFT JOIN ust_usermaster AS u ON u.ust_id = r.user
+LEFT JOIN ARTRAIL_PCS.cth_tree_hierarchy AS c ON c.cth_tree_id = m.client
+LEFT JOIN ust_usermaster AS a ON a.ust_id = m.user
+JOIN upr_user_permission_menu upr ON 'Inbox' = upr.upr_permission_name
+WHERE s.user = 10048 AND m.is_deleted = 'N' AND s.dirty = 1 AND s.folder_id = 0 AND m.threadlastupdate > DATE_SUB(NOW(), INTERVAL 24 HOUR) AND upr.upr_permission_id IN (
+SELECT DISTINCT IFNULL(usp.usp_permission_id,rpm.rpm_permission_id)
+FROM ust_usermaster ust
+JOIN rpm_role_permissions rpm ON rpm.rpm_role_id = ust.ust_role_id
+LEFT JOIN usp_user_permissions usp ON usp.usp_user_id = ust.ust_id
+WHERE ust.ust_id=10048) AND upr.upr_active = 'Y' UNION ALL
+SELECT COUNT(DISTINCT s.message) AS 'Count','email/index/unreadmail/1' AS url,'Messages' AS 'Title','Unread Message(s)' AS 'subTitle','6' AS 'detailId'
+FROM mb_shareholder AS s
+LEFT JOIN mb_messages AS m ON s.message = m.id
+LEFT JOIN mb_recipients AS r ON m.id = r.message
+LEFT JOIN ust_usermaster AS u ON u.ust_id = r.user
+LEFT JOIN ARTRAIL_PCS.cth_tree_hierarchy AS c ON c.cth_tree_id = m.client
+LEFT JOIN ust_usermaster AS a ON a.ust_id = m.user
+JOIN upr_user_permission_menu upr ON 'Inbox' = upr.upr_permission_name
+WHERE s.user = 10048 AND m.is_deleted = 'N' AND s.dirty = 1 AND s.folder_id = 0 AND m.threadlastupdate < DATE_SUB(NOW(), INTERVAL 24 HOUR) AND upr.upr_permission_id IN (
+SELECT DISTINCT IFNULL(usp.usp_permission_id,rpm.rpm_permission_id)
+FROM ust_usermaster ust
+JOIN rpm_role_permissions rpm ON rpm.rpm_role_id = ust.ust_role_id
+LEFT JOIN usp_user_permissions usp ON usp.usp_user_id = ust.ust_id
+WHERE ust.ust_id=10048) AND upr.upr_active = 'Y' UNION ALL
+SELECT COUNT(r.qreqId) AS 'Count','ManageCancellations/index/referlink/1' AS url,'Work Queues' AS 'Title','Cancellation Requests' AS 'subTitle','9' AS 'detailId'
+FROM qrequest AS r
+JOIN ARTRAIL_PCS.aco_accounts_opened aco ON aco.aco_account_id = r.qreqRefNum
+JOIN upr_user_permission_menu upr ON 'Enter Cancellation Request ' = upr.upr_permission_name
+JOIN ARTRAIL_PCS.clt_client clt ON clt.clt_client_id = r.qreqCltNum
+WHERE r.qreqCltNum IN (3449) AND r.qactionId IS NULL AND r.qreqCompany = 'PCS' AND r.qtypeId = 2 AND clt.clt_isVisibilityAllowedinCtools = 'Y' AND upr.upr_permission_id IN (
+SELECT DISTINCT IFNULL(usp.usp_permission_id,rpm.rpm_permission_id)
+FROM ust_usermaster ust
+JOIN rpm_role_permissions rpm ON rpm.rpm_role_id = ust.ust_role_id
+LEFT JOIN usp_user_permissions usp ON usp.usp_user_id = ust.ust_id
+WHERE ust.ust_id=10048) AND upr.upr_active = 'Y' UNION ALL
+SELECT COUNT(*) AS ' COUNT', 'ManageAccountHolds/index/referlink/1' AS url, 'Work Queues' AS 'Title', 'Your Requested Hold(s)' AS 'subTitle', '12' AS 'detailId'
+FROM qrequest AS r
+JOIN ARTRAIL_PCS.aco_accounts_opened aco ON aco.aco_account_id = r.qreqRefNum
+JOIN upr_user_permission_menu upr ON 'Place A Hold' = upr.upr_permission_name
+JOIN ARTRAIL_PCS.clt_client clt ON clt.clt_client_id = r.qreqCltNum
+WHERE r.qreqCltNum IN (3449) AND r.qactionId IS NULL AND r.qreqCompany ='PCS' AND r.qtypeId = 1 AND clt.clt_isVisibilityAllowedinCtools = 'Y' AND upr.upr_permission_id IN (
+SELECT DISTINCT IFNULL(usp.usp_permission_id,rpm.rpm_permission_id)
+FROM ust_usermaster ust
+JOIN rpm_role_permissions rpm ON rpm.rpm_role_id = ust.ust_role_id
+LEFT JOIN usp_user_permissions usp ON usp.usp_user_id = ust.ust_id
+WHERE ust.ust_id=10048) AND upr.upr_active = 'Y' UNION ALL
+SELECT COUNT(DISTINCT(na.id)) AS 'Count', 'LoadnewAccounts/index/referlink/2' AS url, 'Work Queues' AS 'Title', 'Unsubmitted New Account(s)' AS 'subTitle', '10' AS 'detailId'
+FROM new_accounts_guarantors ng
+JOIN new_accounts na ON na.id = ng.new_accounts_id
+JOIN upr_user_permission_menu upr ON 'Enter New Accounts' = upr.upr_permission_name
+WHERE date_submitted IS NULL AND na.web_client IN (3449) AND upr.upr_permission_id IN (
+SELECT DISTINCT IFNULL(usp.usp_permission_id,rpm.rpm_permission_id)
+FROM ust_usermaster ust
+JOIN rpm_role_permissions rpm ON rpm.rpm_role_id = ust.ust_role_id
+LEFT JOIN usp_user_permissions usp ON usp.usp_user_id = ust.ust_id
+WHERE ust.ust_id=10048) AND upr.upr_active = 'Y' UNION ALL
+SELECT COUNT(ctd_request_description) AS 'Count','ResolvedAccountExcpetion/informationReqtoclient/ctd_type/IR' AS url,'Work Queues' AS 'Title','Account Queries' AS 'subTitle','14' AS 'detailId'
+FROM ARTRAIL_PCS.ctd_request_toclient_detail ctd
+INNER JOIN ARTRAIL_PCS.aco_accounts_opened accountali4_ ON ctd.ctd_aco_account_id=accountali4_.aco_account_id
+INNER JOIN ARTRAIL_PCS.clt_client clt ON ctd.ctd_clt_client_id=clt.clt_client_id
+INNER JOIN ARTRAIL_PCS.cth_tree_hierarchy corporatea2_ ON clt.clt_corporate_id=corporatea2_.cth_tree_id
+INNER JOIN ARTRAIL_PCS.con_consumer consumeral3_ ON ctd.ctd_con_consumer_id=consumeral3_.con_consumer_id
+JOIN ARTRAIL_PCS.glp_general_lookup glp ON glp.glp_lookup_key = ctd.ctd_glp_request_description
+JOIN upr_user_permission_menu upr ON 'Information Requests to Client' = upr.upr_permission_name
+WHERE corporatea2_.cth_tree_id=3449 AND clt.clt_client_id IN (5,6,18,22,23,24,45,64,122,138,220,515,516,517,518,519,520,524,539,553,567,569,20590,20598) AND glp.glp_general_lookup_id IN (
+SELECT g.glp_lookup_value
+FROM ARTRAIL_PCS.glp_general_lookup g
+WHERE g.glp_general_lookup_id = 589) AND glp.glp_general_lookup_id != 685 AND ctd.ctd_request_from='COLL' AND ctd.ctd_request_description!='' AND ctd.ctd_approved_flag='Y' AND ctd.ctd_cr_submit_flag<>'R' AND ctd.ctd_cr_submit_flag<>'P' AND clt.clt_isVisibilityAllowedinCtools = 'Y' AND upr.upr_permission_id IN (
+SELECT DISTINCT IFNULL(usp.usp_permission_id,rpm.rpm_permission_id)
+FROM ust_usermaster ust
+JOIN rpm_role_permissions rpm ON rpm.rpm_role_id = ust.ust_role_id
+LEFT JOIN usp_user_permissions usp ON usp.usp_user_id = ust.ust_id
+WHERE ust.ust_id=10048) AND upr.upr_active = 'Y' UNION ALL
+SELECT COUNT(ctd.ctd_request_description) AS 'Count', 'ResolvedAccountExcpetion/pendingdirectpayments/ctd_type/DP' AS url, 'Work Queues' AS 'Title', 'Pending Direct Payment Requests' AS 'subTitle', '17' AS 'detailId'
+FROM ARTRAIL_PCS.ctd_request_toclient_detail ctd
+INNER JOIN ARTRAIL_PCS.aco_accounts_opened accountali4_ ON ctd.ctd_aco_account_id=accountali4_.aco_account_id
+INNER JOIN ARTRAIL_PCS.clt_client clt ON ctd.ctd_clt_client_id=clt.clt_client_id
+INNER JOIN ARTRAIL_PCS.cth_tree_hierarchy corporatea2_ ON clt.clt_corporate_id=corporatea2_.cth_tree_id
+INNER JOIN ARTRAIL_PCS.con_consumer consumeral3_ ON ctd.ctd_con_consumer_id=consumeral3_.con_consumer_id
+LEFT JOIN ARTRAIL_PCS.glp_general_lookup glp ON glp.glp_lookup_value = ctd.ctd_request_description
+JOIN upr_user_permission_menu upr ON 'Pending Direct Payment Inquires ' = upr.upr_permission_name
+WHERE corporatea2_.cth_tree_id IN(3449) AND clt.clt_client_id IN (5,6,18,22,23,24,45,64,122,138,220,515,516,517,518,519,520,524,539,553,567,569,20590,20598) AND glp.glp_general_lookup_id=685 AND ctd.ctd_request_from='COLL' AND ctd.ctd_request_description!='' AND ctd.ctd_approved_flag='Y' AND ctd.ctd_cr_submit_flag<>'R' AND ctd.ctd_cr_submit_flag<>'P' AND clt.clt_isVisibilityAllowedinCtools = 'Y' AND upr.upr_permission_id IN (
+SELECT DISTINCT IFNULL(usp.usp_permission_id,rpm.rpm_permission_id)
+FROM ust_usermaster ust
+JOIN rpm_role_permissions rpm ON rpm.rpm_role_id = ust.ust_role_id
+LEFT JOIN usp_user_permissions usp ON usp.usp_user_id = ust.ust_id
+WHERE ust.ust_id=10048) AND upr.upr_active = 'Y' UNION ALL
+SELECT COUNT(*) AS 'Count', 'reports/CustomReport/dashboard_flag/Y' AS url, 'Reports' AS 'Title', 'Custom Reports' AS 'subTitle', '19' AS 'detailId'
+FROM log_uploads lu
+JOIN upr_user_permission_menu upr ON 'Custom Report' = upr.upr_permission_name
+WHERE lu.subject IN ('Custom Reports for Clients','CustomReports') AND lu.`client` = 3449 AND (DATEDIFF(NOW(),lu.datetime) <= 30) AND upr.upr_permission_id IN (
+SELECT DISTINCT IFNULL(usp.usp_permission_id,rpm.rpm_permission_id)
+FROM ust_usermaster ust
+JOIN rpm_role_permissions rpm ON rpm.rpm_role_id = ust.ust_role_id
+LEFT JOIN usp_user_permissions usp ON usp.usp_user_id = ust.ust_id
+WHERE ust.ust_id=10048) AND upr.upr_active = 'Y' UNION ALL
+SELECT SUM(a.Count) AS 'Count', 'ResolvedAccountExcpetion/pendinglegaldoc' AS url, 'Work Queues' AS 'Title', 'Pending Legal Doc Requests' AS 'subTitle', '21' AS 'detailId'
+FROM (
+SELECT COUNT(DISTINCT(ad.document_type)) AS 'Count'
+FROM ARTRAIL_PCS.lms_account_document_status ad
+JOIN ARTRAIL_PCS.glp_general_lookup glp ON glp.glp_lookup_key=ad.`status`
+JOIN ARTRAIL_PCS.aco_accounts_opened aco ON aco.aco_account_id=ad.aco_account_id
+JOIN ARTRAIL_PCS.con_consumer con ON aco_consumer_id=con.con_consumer_id
+JOIN ARTRAIL_PCS.clt_client clt ON clt.clt_client_id=aco.aco_cld_client_id
+JOIN ARTRAIL_PCS.cth_tree_hierarchy cth ON clt.clt_facility_id=cth.cth_tree_id
+LEFT JOIN ARTRAIL_PCS.cad_client_address cad ON cad.cad_clt_client_id=clt.clt_client_id
+LEFT JOIN ARTRAIL_PCS.sta_state sta ON sta.sta_state_id=cad.cad_sta_state_id
+JOIN upr_user_permission_menu upr ON 'Pending Legal Doc Requests' = upr.upr_permission_name
+LEFT OUTER
+JOIN ARTRAIL_PCS.glp_general_lookup glp_prv ON glp_prv.glp_lookup_key=ad.previous_status
+WHERE ad.`status` IN(1569,1568,1570) AND ad.resolve_status='N' AND clt.clt_corporate_id=3449 AND clt.clt_isVisibilityAllowedinCtools = 'Y' AND ad.document_type !='H' AND upr.upr_permission_id IN (
+SELECT DISTINCT IFNULL(usp.usp_permission_id,rpm.rpm_permission_id)
+FROM ust_usermaster ust
+JOIN rpm_role_permissions rpm ON rpm.rpm_role_id = ust.ust_role_id
+LEFT JOIN usp_user_permissions usp ON usp.usp_user_id = ust.ust_id
+WHERE ust.ust_id=10048) AND upr.upr_active = 'Y'
+GROUP BY ad.document_type,ad.aco_account_id) a UNION ALL
+SELECT SUM(a.Count) AS 'Count', 'ResolvedAccountExcpetion/pendinglegalaction' AS url, 'Work Queues' AS 'Title', 'Pending Legal Action Requests' AS 'subTitle', '23' AS 'detailId'
+FROM (
+SELECT COUNT(DISTINCT(ad.document_type)) AS 'Count'
+FROM ARTRAIL_PCS.lms_account_document_status ad
+JOIN ARTRAIL_PCS.glp_general_lookup glp ON glp.glp_lookup_key=ad.`status`
+JOIN ARTRAIL_PCS.aco_accounts_opened aco ON aco.aco_account_id=ad.aco_account_id
+JOIN ARTRAIL_PCS.con_consumer con ON aco_consumer_id=con.con_consumer_id
+JOIN ARTRAIL_PCS.clt_client clt ON clt.clt_client_id=aco.aco_cld_client_id
+JOIN ARTRAIL_PCS.cth_tree_hierarchy cth ON clt.clt_facility_id=cth.cth_tree_id
+LEFT JOIN ARTRAIL_PCS.cad_client_address cad ON cad.cad_clt_client_id=clt.clt_client_id
+LEFT JOIN ARTRAIL_PCS.sta_state sta ON sta.sta_state_id=cad.cad_sta_state_id
+JOIN upr_user_permission_menu upr ON 'Pending Legal Action Requests' = upr.upr_permission_name
+LEFT OUTER
+JOIN ARTRAIL_PCS.glp_general_lookup glp_prv ON glp_prv.glp_lookup_key=ad.previous_status
+WHERE ad.`status` IN(1569,1568,1570) AND ad.resolve_status='N' AND clt.clt_corporate_id=3449 AND clt.clt_isVisibilityAllowedinCtools = 'Y' AND ad.document_type ='H' AND upr.upr_permission_id IN (
+SELECT DISTINCT IFNULL(usp.usp_permission_id,rpm.rpm_permission_id)
+FROM ust_usermaster ust
+JOIN rpm_role_permissions rpm ON rpm.rpm_role_id = ust.ust_role_id
+LEFT JOIN usp_user_permissions usp ON usp.usp_user_id = ust.ust_id
+WHERE ust.ust_id=10048) AND upr.upr_active = 'Y'
+GROUP BY ad.document_type,ad.aco_account_id) a

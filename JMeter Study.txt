@@ -1,0 +1,19 @@
+JMeter Install ib n Linux
+-----------------------------
+wget http://www.gtlib.gatech.edu/pub/apache//jmeter/binaries/apache-jmeter-3.3.tgz
+tar -xf apache-jmeter-3.3.tgz
+ln /usr/local/apache-jmeter-3.3/bin/jmeter /usr/bin/
+
+
+http://10.100.4.13/arm/login
+
+
+Ag4yVqRunzh33xPp6HT5
+
+
+
+
+
+
+
+

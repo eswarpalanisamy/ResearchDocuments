@@ -1,0 +1,19 @@
+-- Jenkins Study
+
+Jenkins is a self-contained, open source automation server which can be used to automate all sorts of tasks related to building, testing, and deploying software.
+
+-- Download and run Jenkins
+
+Download Jenkins.
+Open up a terminal in the download directory.
+Run java -jar jenkins.war --httpPort=8080.
+Browse to http://localhost:8080.
+
+
+Job-Source Code Management
+
+Get visibility across all teams and projects
+Activity Timeline Resource Planning
+
+Intuitive resource planner dashboard to schedule Jira tasks, custom events, reservations and visualize team workload/assignments
+

@@ -1,0 +1,77 @@
+--- JIRA Study ---
+
+- required task list
+- http://demo.kgfsl.com/jira/
+
+/rest/api/2/project/
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Rich Filters for Jira Dashboards
+https://marketplace.atlassian.com/plugins/com.qotilabs.jira.rich-filters-plugin/server/overview
+
+Rich Filters for Jira adds plenty of powerful features on top of Jira Dashboards. The Rich Filters will transform your Dashboards from static to 
+truly dynamic and interactive operational boards
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+WorklogPRO - Timesheets for Jira
+https://marketplace.atlassian.com/plugins/com.deniz.jira.worklog/server/overview
+
+Extend Jira Time Tracking with Timesheet and chart, Advanced Work Log Dialog for Work Log Entry/Edit, Enter/edit/delete work logs on the calendar
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+WBS Gantt-Chart for Jira
+https://marketplace.atlassian.com/plugins/jp.ricksoft.plugins.wbsgantt-for-jira/server/overview
+
+Schedule management with customizable Gantt, Resource planning for assignee workloads, Export to Excel, and easy-to-use issue templates, 
+WBS Gantt-Chart for Jira - Microsoft Project alternative
+
+MS Project importer for Jira
+https://marketplace.atlassian.com/plugins/jp.ricksoft.plugins.ms-project-import4jira/server/overview
+Import your MS Project tasks, dependencies and task structures into Jira with the help of WBS Gantt-Chart for Jira
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Tempo Timesheets
+https://marketplace.atlassian.com/plugins/is.origo.jira.tempo-plugin/cloud/overview
+
+Painless time tracking, powerful reporting, better overview of time spent on projects and throughout your organization, Painless Time Tracking and 
+Timesheet Approvals, Powerful Reporting for all work in Jira, Manage cost centers across your business
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Tempo Budgets
+https://marketplace.atlassian.com/plugins/com.greffon.folio/server/overview
+
+Control project costs, revenues, and resources- Budget, track, and forecast finances and capacity, Financial Project Management, Simplified Cost Control, 
+Agile Portfolio Management
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Tempo Mobile App for Jira
+https://marketplace.atlassian.com/plugins/io.tempo.ios/cloud/overview
+
+Mobile time tracking, Google and Office 365 calendar integration, Real-time progress reports, Calendar Planning
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Tempo Planner
+https://marketplace.atlassian.com/plugins/com.tempoplugin.tempo-planner/cloud/overview
+
+Tempo Planner offers visualized resource management for team and project planning seamlessly in Jira. Team, project, and program planning, Manage team and 
+program capacity
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Portfolio for Jira
+https://marketplace.atlassian.com/plugins/com.radiantminds.roadmaps-jira/cloud/overview
+
+The agile portfolio management tool, Agile roadmap planning, Team and project visibility, 
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Automation for Jira
+https://marketplace.atlassian.com/plugins/com.codebarrel.addons.automation/server/overview
+
+Painless automation, Flexible triggers, 1000s of supported use-cases
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+

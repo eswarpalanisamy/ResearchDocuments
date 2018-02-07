@@ -1,0 +1,11 @@
+Set up the Atlassian Plugin SDK and Build a Project
+https://developer.atlassian.com/docs/getting-started/set-up-the-atlassian-plugin-sdk-and-build-a-project#SetuptheAtlassianPluginSDKandBuildaProject-prerequesitesBeforeyoubegin
+
+Create a HelloWorld Plugin Project
+https://developer.atlassian.com/docs/getting-started/set-up-the-atlassian-plugin-sdk-and-build-a-project/create-a-helloworld-plugin-project
+
+Modify the Plugin
+https://developer.atlassian.com/docs/getting-started/set-up-the-atlassian-plugin-sdk-and-build-a-project/modify-the-plugin
+
+
+

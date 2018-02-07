@@ -1,0 +1,23 @@
+-- SonarQube
+sonar.properties
+	- contains all port information
+	- database JDBC connectivity details
+	- web server configuration
+
+Maven project configuration - SonarQube Scanner
+	- SonarLint, the eclipse plugin will help us scan the code before commit into the repo (can validate with server Quality Profiles)
+	- plugin configuration
+		<groupId>org.sonarsource.scanner.maven</groupId>
+		<artifactId>sonar-maven-plugin</artifactId>
+		<version>3.5-SNAPSHOT</version>
+	- sonar:sonar run this maven command to update the scan results into SonarQube server
+
+JaCoCo maven plugin
+	- used for unit test code coverage findings
+	- <!-- https://mvnrepository.com/artifact/org.jacoco/jacoco-maven-plugin -->
+<dependency>
+    <groupId>org.jacoco</groupId>
+    <artifactId>jacoco-maven-plugin</artifactId>
+    <version>0.8.0</version>
+</dependency>
+To launch JaCoCo as part of your Maven build, use this command: mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent install -Dmaven.test.failure.ignore=false

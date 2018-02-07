@@ -1,0 +1,14 @@
+https://www.youtube.com/watch?v=9gtpyqhd-NI
+https://www.youtube.com/watch?v=-9C2ZtdAAFY
+https://www.youtube.com/watch?v=cYBdaeNeXbY
+
+
+Clustering - group of tomcats with apps
+Load balancer will act as a reverse proxy for the tomcat clustering
+Reverse Proxy - In computer networks, a reverse proxy is a type of proxy server that retrieves resources on behalf of a client from one or more servers. 
+These resources are then returned to the client as if they originated from the Web server itself
+
+apache HTTP server - Load balance server
+mod_jk to communicate between apache & t
+
+contact@maruthi.co.in

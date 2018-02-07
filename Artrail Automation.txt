@@ -1,0 +1,54 @@
+all Cucumber jars
+selenium server standalone jars
+
+com.kgfsl.collections.core.json.models.
+
+gitlab - access token NLuPhmbA7CD2RDUNLp34
+
+zJz47-2ZhjJHLXDxExjU
+
+sonarqube token d984f33f611d0dd264196c56fa2f1d3bd443aaa3
+
+export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.141-1.b16.el7_3.x86_64/jre 
+export PATH=$JAVA_HOME/bin:$PATH
+export M2_HOME=/usr/local/apache-maven/apache-maven-3.2.1
+export M2=$M2_HOME/bin
+export PATH=$M2:$PATH 
+
+
+-Dsonar.issuesReport.html.enable=true
+-Dsonar.inclusions=**/*.java
+-Dsonar.java.binaries=target/classes
+-Dsonar.sourceEncoding=UTF-8
+sonar.projectKey=ARTrail
+sonar.sources=D:\\Tutorials\\Jenkins\\Setup\\JenkinsHome\\workspace\\ARTrailLifeCycle\\CodeReview\\collection-ui\\target\\classes
+
+
+balakrishnan.p
+sathishkumarp
+deena.rv
+kiruba.shankar
+manickam.r
+Kalaivani.P
+Rajashree.G
+
+
+server
+	{
+		server_name artrail-jenkins.kgfsl.com;
+		
+		location / {
+			proxy_pass http://10.100.4.14:8085;
+		}
+	}
+	server
+	{
+		server_name artrail-nexus.kgfsl.com;
+		
+		location / {
+			proxy_pass http://10.100.4.14:8081;
+			proxy_set_header Host $host;
+	           proxy_set_header X-Real-IP $remote_addr;
+         	   proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+		}
+	}

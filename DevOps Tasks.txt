@@ -1,0 +1,17 @@
+- Jenkins folder creation for job groping -completed
+- JUnit report configuration for unit test results -completed
+- JIRA login creation for chris -completed
+- Jenkins artrail automation job configuration -completed
+- JUnit report configuration for automation testing results -completed
+
+- GitLab webhook creation for jenkins job trigger
+- LDAP access provisioning for team members
+- JIRA workflow configuration for artrail application
+- JIRA and GitLab integration to jenkins
+- Load Test job configuration in jenkins
+- Sonarqube configuration in jenkins
+- Master Code review by using Apache PMD in jenkins server
+- 
+
+
+- Ansible job for deploying war
